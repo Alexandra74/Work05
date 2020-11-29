@@ -122,11 +122,11 @@ RCC::APB1ENR::TIM2EN::Enable::Set();
 TIM2::CR1::URS::OverflowEvent::Set();
 ----
 
-Установливаем значение до которого счётчик будет считать в регистре перезагрузке ARR.
+Установим значение до которого счётчик будет считать в регистре перезагрузке ARR и также задаем делитель частоты (для HSE - 7999):
 
 ----
-const std::uint32_t timerValue = (CpuClock * 1000U) * ButPeriod - 1U;
-TIM2::ARR::Write(timerValue);
+TIM2::PSC::Set(7999U);
+TIM2::ARR::Write(ButPeriod - 1U);
 ----
 
 Скидываем флаг генерации прерывания UIF по событию в регистре SR.
@@ -169,31 +169,28 @@ TIM2::CR1::CEN::Disable::Set();
 #include "gpiocregisters.hpp"
 #include "gpioaregisters.hpp"
 #include <iostream>
+#include "stkregisters.hpp"
 #include "tim2registers.hpp"
 
 constexpr std::uint32_t CpuClock = 8'000'000U;
 auto delay_ms(std::uint32_t ButPeriod)
 {
 TIM2::CR1::URS::OverflowEvent::Set();
-const std::uint32_t timerValue = (CpuClock * 1000U) * ButPeriod - 1U;
-TIM2::ARR::Write(timerValue);
+TIM2::PSC::Set(7999U);
+TIM2::ARR::Write(ButPeriod - 1U);
 TIM2::SR::UIF::NoInterruptPending::Set();
 TIM2::CNT::Write(0);
 TIM2::CR1::CEN::Enable::Set();
-
-  while (!TIM2::SR::UIF::NoInterruptPending::IsSet() )
+while (!TIM2::SR::UIF::NoInterruptPending::IsSet() )
       {
-
       }
       TIM2::CR1::CEN::Disable::Set();
       }
-
-    int main()
+ int main()
     {
       unsigned int ButPeriod = 100U;
       unsigned int LedsPeriod = 500U;
       unsigned int counter = 0;
-
     bool flag = false;
     RCC::CR::HSEON::On::Set();
     while(!RCC::CR::HSERDY::Ready::IsSet())
@@ -215,9 +212,7 @@ TIM2::CR1::CEN::Enable::Set();
 
     for(;;)
     {
-
-
-    delay_ms(ButPeriod);
+ delay_ms(ButPeriod);
     if(GPIOC::IDR::IDR13::Low::IsSet())
     {
       LedsPeriod += 100U;
@@ -243,7 +238,6 @@ TIM2::CR1::CEN::Enable::Set();
       flag = false;
     }
     counter = 0;
-
     }
     }
     return 1;
